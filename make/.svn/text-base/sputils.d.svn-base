@@ -1,3 +1,0 @@
-sputils.o: ../src/sputils.cpp ../src/sputils.hpp
-
-../src/sputils.hpp:

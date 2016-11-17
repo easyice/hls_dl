@@ -1,3 +1,0 @@
-cplaystatistics.o: ../src/cplaystatistics.cpp ../src/cplaystatistics.h
-
-../src/cplaystatistics.h:

@@ -1,9 +1,0 @@
-ctsreaderbase.o: ../src/ctsreaderbase.cpp ../src/ctsreaderbase.h \
- /home/ovtsvn/linux_devlibs/include/libngodobjtype.h \
- /home/ovtsvn/linux_devlibs/include/ztypes.h
-
-../src/ctsreaderbase.h:
-
-/home/ovtsvn/linux_devlibs/include/libngodobjtype.h:
-
-/home/ovtsvn/linux_devlibs/include/ztypes.h:

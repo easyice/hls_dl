@@ -1,5 +1,0 @@
-cm3u8gen.o: ../src/cm3u8gen.cpp ../src/cm3u8gen.h ../src/protocal.h
-
-../src/cm3u8gen.h:
-
-../src/protocal.h:

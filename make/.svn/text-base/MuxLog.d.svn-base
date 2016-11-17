@@ -1,3 +1,0 @@
-MuxLog.o: ../src/MuxLog.cpp ../src/MuxLog.h
-
-../src/MuxLog.h:

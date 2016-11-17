@@ -1,8 +1,0 @@
-sphttpmsg.o: ../src/sphttpmsg.cpp ../src/spporting.hpp \
- ../src/sphttpmsg.hpp ../src/sputils.hpp
-
-../src/spporting.hpp:
-
-../src/sphttpmsg.hpp:
-
-../src/sputils.hpp:
