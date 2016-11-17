@@ -1,0 +1,45 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#ifndef CTSREADERTEST_H
+#define CTSREADERTEST_H
+
+#include "ctsreaderbase.h"
+
+
+class CTsReaderStd : public CTsReaderBase
+{
+public:
+	CTsReaderStd();
+	~CTsReaderStd();
+	
+	virtual bool Switch(float fScale);
+	virtual bool Seek(long long llTimeCode);
+	virtual bool Close();
+	virtual int Read(BYTE* pBuf, int nBufSize);
+	virtual int ReadGop(BYTE* pBuf,int nBufSize,long long &beginpcrvalue,
+			    long long &endpcrvalue,long long &llTimeCodePcr);
+	virtual bool Open(const std::string& filename,const char* mode);
+	virtual bool Open(OVT_STRU_CREATE_USER_OBJ_INFO stInfo);
+	
+private:
+	FILE* m_fp;
+};
+
+#endif // CTSREADERTEST_H

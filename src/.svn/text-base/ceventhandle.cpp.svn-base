@@ -1,0 +1,313 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "ceventhandle.h"
+#include "zapp.h"
+#include <errno.h>
+
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <netdb.h>
+
+
+#include "crequestprocess.h"
+#include "global.h"
+#include "define.h"
+
+
+
+//接收临时缓冲大小
+#define BUF_LEN (1024*64)
+
+CEventHandle::CEventHandle()
+{
+	m_pRecvBuf = new BYTE[BUF_LEN];
+	
+	m_pHttpReq = new CRequestProcess();
+}
+
+CEventHandle::~CEventHandle()
+{
+	delete [] m_pRecvBuf;
+	
+	delete m_pHttpReq;
+}
+
+void CEventHandle::ProcessEvent(epoll_event ioEv)
+{
+	CONNECTION_T* pConn = (CONNECTION_T*)(ioEv.data.ptr);
+	if (pConn == NULL)
+	{
+		ZLOG(ZLT_ERROR,"无法取得用户 连接资源");
+		return;
+	}
+	
+
+	if( (ioEv.events & EPOLLIN)
+		&& (ioEv.events & EPOLLRDHUP) )
+	{
+		OnDisConnect(pConn,ioEv);
+	}
+	else if( ioEv.events & EPOLLIN )
+	{
+		OnRead(pConn,ioEv);
+	}
+	else if ( ioEv.events & EPOLLOUT )
+	{
+		OnWrite(pConn,ioEv);
+	}
+	else
+	{
+		ZLOG(ZLT_WARNING,"无须处理的事件",V(ioEv.events));
+	}
+}
+
+void CEventHandle::OnRead(CONNECTION_T* pConn,const epoll_event& epEv)
+{
+	vs_log(LV_DEBUG_EV,"sock=%04d,=================onread,tid=%ld====================",pConn->sock,gettid());
+
+	pthread_mutex_lock(&pConn->mutex);
+        
+        /*
+         * 如果用户缓冲有未发完的数据，等待数据发完.目的是保证pWriteBuffer为空,可能
+         * 还有数据没发出去.可能会有如下情况发生等待：
+         * 1.客户端在接收完数据前又发来的任何请求
+         * 超时情况下关闭连接。
+        */
+        if ( !pConn->pStatus->WaitForReady(1000) )
+        {
+                CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+                pthread_mutex_unlock(&pConn->mutex);
+                ZLOG(ZLT_ERROR,"当前连接上次任务尚未处理完毕，强行关闭连接");
+                return;
+        }
+	
+	if (pConn->sock < 0)
+	{
+		vs_log(LV_ERROR,"无效socket，放弃处理,epEv.events=0X%x,pConn->sock=%d",epEv.events,pConn->sock);
+		pthread_mutex_unlock(&pConn->mutex);
+		return;
+	}
+	
+	pConn->pStatus->SetStatus(ST_BUSY);
+        time(&pConn->updateTime);
+	
+	char *p = (char*)m_pRecvBuf;
+	int remain_size = BUF_LEN;
+	
+	if (!pConn->strRemainReq.empty())
+	{
+		int ssize = pConn->strRemainReq.size();
+
+		if (ssize >= BUF_LEN)
+		{
+                        ZLOG(ZLT_ERROR,"接收缓冲不足",V(pConn->sock));
+                        pConn->strRemainReq.clear();
+		}
+		else
+		{
+                        memcpy(p,pConn->strRemainReq.c_str(),ssize);
+                        p += ssize;
+                        remain_size -= ssize;
+		}
+	}
+	
+	int ret;
+	while(1)
+	{
+		ret = 0;
+		
+		//接受数据
+		int iRecvSize = recv(pConn->sock, p, remain_size, 0);
+
+		vs_log(LV_DEBUG_IO,"sock=%04d,read size=%d,tid=%ld",pConn->sock,iRecvSize,gettid());
+		
+
+		if (iRecvSize < 0)
+		{
+			if (errno == EAGAIN)
+			{
+				break;
+			}
+			char buf[20] = "";
+			sprintf(buf,"0x%X",epEv.events);
+			ZLOG(ZLT_ERROR,"recv < 0",V(buf),LASTERROR,V(errno),V(pConn->sock),
+			     V(pConn->sock),V(iRecvSize));
+			CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+			pthread_mutex_unlock(&pConn->mutex);
+			return;
+		}
+		else if (iRecvSize == 0)
+		{
+			//对端关闭
+			CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+			pthread_mutex_unlock(&pConn->mutex);
+			return;
+		}
+		
+		//处理数据，并组织返回数据，进行发送
+		if ( (ret = ProcessRecv(pConn,iRecvSize+(BUF_LEN-remain_size))) < 0 )
+		{
+			CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+			pthread_mutex_unlock(&pConn->mutex);
+			return;
+		}
+		
+		if (iRecvSize != remain_size)   
+		{
+			break; //数据已读完
+		}
+
+		
+		remain_size = BUF_LEN - ret;
+		p = (char*)m_pRecvBuf + ret;
+		
+	}
+	
+	if (ret > 0)
+	{
+		pConn->strRemainReq = (char*)m_pRecvBuf;
+	}
+	else if (ret == 0)
+	{
+		pConn->strRemainReq.clear();
+	}
+	
+	//本次任务处理完毕，没有需要等待 OUT 事件才去再次发送的数据
+        if (pConn->pWriteBuffer->GetDataLen() == 0)
+        {
+                vs_log(LV_USER,"sock=%04d,请求处理完毕!!!",pConn->sock);
+                pConn->pStatus->SetStatus(ST_READY);
+        }
+	
+	pthread_mutex_unlock(&pConn->mutex);
+}
+
+void CEventHandle::OnWrite(CONNECTION_T* pConn,const epoll_event& epEv)
+{
+	vs_log(LV_DEBUG_EV,"sock=%04d,onwrite,tid=%ld",pConn->sock,gettid());
+
+	pthread_mutex_lock(&pConn->mutex);
+	
+	if (pConn->sock < 0)
+	{
+		vs_log(LV_ERROR,"无效socket，放弃处理,epEv.events=0X%x,pConn->sock=%d",epEv.events,pConn->sock);
+		pthread_mutex_unlock(&pConn->mutex);
+		return;
+	}
+	
+	if (!m_pHttpReq->ProcessContinue(pConn))
+	{
+                vs_log(LV_ERROR,"ProcessContinue出错，关闭连接");
+		CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+	}
+	
+	pthread_mutex_unlock(&pConn->mutex);
+}
+
+int CEventHandle::ProcessRecv(CONNECTION_T* pConn,int nLen)
+{
+	int http_head_len = 0;
+	int used_len = 0;
+	
+	while (1)
+	{
+		int data_len = nLen-used_len;
+		http_head_len = get_headers_len((char*)m_pRecvBuf+used_len,data_len);
+		
+		if (http_head_len > 0)
+		{
+			if (!m_pHttpReq->ProcessNewRequest((char*)m_pRecvBuf+used_len,http_head_len,pConn))
+			{
+				return -1; //close conn
+			}
+		
+			used_len += http_head_len;
+			if (http_head_len == data_len)
+			{
+				break;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+	
+	int remain_len = nLen - used_len;
+	
+	if (remain_len > 0)
+	{
+		memmove(m_pRecvBuf,m_pRecvBuf+used_len,remain_len);
+	}
+	m_pRecvBuf[remain_len] = 0;
+	
+	return remain_len;
+}
+
+
+void CEventHandle::OnDisConnect(CONNECTION_T* pConn,const epoll_event& epEv)
+{
+	//连接信息
+	string server,client;
+	
+	pthread_mutex_lock(&pConn->mutex);
+	
+	if (pConn->sock < 0 /*|| pConn->sock != epEv.data.fd*/)
+	{
+		vs_log(LV_ERROR,"无效socket，放弃处理,epEv.events=0X%x,pConn->sock=%d\n",epEv.events,pConn->sock);
+		pthread_mutex_unlock(&pConn->mutex);
+		return;
+	}
+	
+	GetConnectInfo(pConn->sock,server,client);
+
+	vs_log(LV_USER,"sock=%04d,用户断开连接,server=%s,client=%s,event=0X%04x,tid=%d",
+		  pConn->sock,server.c_str(),client.c_str(),epEv.events,gettid());
+	
+	CConnectionMgr::GetInstancePtr()->CloseConnection(pConn);
+	pthread_mutex_unlock(&pConn->mutex);
+	
+	vs_log(LV_USER,"连接数：%d,tid=%d",CConnectionMgr::GetInstancePtr()->GetConnectionCount(),gettid());
+
+}
+
+void CEventHandle::GetConnectInfo(int sock,string& server, string& client)
+{
+        struct sockaddr sa_s;
+        struct sockaddr sa_c;
+        socklen_t sa_len_s = sizeof(sa_s);
+        socklen_t sa_len_c = sizeof(sa_c);
+        char s_hbuf[NI_MAXHOST];
+        char s_sbuf[NI_MAXSERV];
+        char c_hbuf[NI_MAXHOST];
+        char c_sbuf[NI_MAXSERV];
+        
+        
+        getsockname(sock, (struct sockaddr *)&sa_s, &sa_len_s);  
+        getpeername(sock, (struct sockaddr *)&sa_c, &sa_len_c);
+        
+        getnameinfo(&sa_s,sa_len_s,s_hbuf,sizeof(s_hbuf),s_sbuf,sizeof(s_sbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+        getnameinfo(&sa_c,sa_len_c,c_hbuf,sizeof(c_hbuf),c_sbuf,sizeof(c_sbuf), NI_NUMERICHOST | NI_NUMERICSERV);
+        
+
+        server = s_hbuf;
+        client = c_hbuf;
+}
+

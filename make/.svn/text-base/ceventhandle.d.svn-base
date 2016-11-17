@@ -1,0 +1,76 @@
+ceventhandle.o: ../src/ceventhandle.cpp ../src/ceventhandle.h \
+ ../src/define.h ../src/MuxLog.h \
+ /home/ovtsvn/linux_devlibs/include/zapp.h \
+ /home/ovtsvn/linux_devlibs/include/zxml.h \
+ /home/ovtsvn/linux_devlibs/include/tinyxml.h \
+ /home/ovtsvn/linux_devlibs/include/zany.h \
+ /home/ovtsvn/linux_devlibs/include/ztypes.h \
+ /home/ovtsvn/linux_devlibs/include/shttpd.h \
+ /home/ovtsvn/linux_devlibs/include/zlog.h ../src/cconnectionmgr.h \
+ ../src/cwritebuffer.h ../src/cuserstatus.h \
+ /home/ovtsvn/linux_devlibs/include/zevent.h \
+ /home/ovtsvn/linux_devlibs/include/zsaferegister.h \
+ /home/ovtsvn/linux_devlibs/include/zapp.h \
+ /home/ovtsvn/linux_devlibs/include/zspin.h \
+ /home/ovtsvn/linux_devlibs/include/zmod.h \
+ /home/ovtsvn/linux_devlibs/include/zmutex.h ../src/ctsreaderbase.h \
+ /home/ovtsvn/linux_devlibs/include/libngodobjtype.h ../src/cspeedctrl.h \
+ ../src/cm3u8gen.h ../src/csessionmgr.h \
+ /home/ovtsvn/linux_devlibs/include/zsafeobjpool.h \
+ ../src/crequestprocess.h ../src/sphttpmsg.hpp ../src/global.h
+
+../src/ceventhandle.h:
+
+../src/define.h:
+
+../src/MuxLog.h:
+
+/home/ovtsvn/linux_devlibs/include/zapp.h:
+
+/home/ovtsvn/linux_devlibs/include/zxml.h:
+
+/home/ovtsvn/linux_devlibs/include/tinyxml.h:
+
+/home/ovtsvn/linux_devlibs/include/zany.h:
+
+/home/ovtsvn/linux_devlibs/include/ztypes.h:
+
+/home/ovtsvn/linux_devlibs/include/shttpd.h:
+
+/home/ovtsvn/linux_devlibs/include/zlog.h:
+
+../src/cconnectionmgr.h:
+
+../src/cwritebuffer.h:
+
+../src/cuserstatus.h:
+
+/home/ovtsvn/linux_devlibs/include/zevent.h:
+
+/home/ovtsvn/linux_devlibs/include/zsaferegister.h:
+
+/home/ovtsvn/linux_devlibs/include/zapp.h:
+
+/home/ovtsvn/linux_devlibs/include/zspin.h:
+
+/home/ovtsvn/linux_devlibs/include/zmod.h:
+
+/home/ovtsvn/linux_devlibs/include/zmutex.h:
+
+../src/ctsreaderbase.h:
+
+/home/ovtsvn/linux_devlibs/include/libngodobjtype.h:
+
+../src/cspeedctrl.h:
+
+../src/cm3u8gen.h:
+
+../src/csessionmgr.h:
+
+/home/ovtsvn/linux_devlibs/include/zsafeobjpool.h:
+
+../src/crequestprocess.h:
+
+../src/sphttpmsg.hpp:
+
+../src/global.h:

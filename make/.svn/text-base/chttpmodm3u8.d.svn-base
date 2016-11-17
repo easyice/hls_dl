@@ -1,0 +1,95 @@
+chttpmodm3u8.o: ../src/chttpmodm3u8.cpp ../src/chttpmodm3u8.h \
+ ../src/chttpmodbase.h ../src/cconnectionmgr.h ../src/cwritebuffer.h \
+ /home/ovtsvn/linux_devlibs/include/zapp.h \
+ /home/ovtsvn/linux_devlibs/include/zxml.h \
+ /home/ovtsvn/linux_devlibs/include/tinyxml.h \
+ /home/ovtsvn/linux_devlibs/include/zany.h \
+ /home/ovtsvn/linux_devlibs/include/ztypes.h \
+ /home/ovtsvn/linux_devlibs/include/shttpd.h \
+ /home/ovtsvn/linux_devlibs/include/zlog.h ../src/cuserstatus.h \
+ /home/ovtsvn/linux_devlibs/include/zevent.h \
+ /home/ovtsvn/linux_devlibs/include/zsaferegister.h \
+ /home/ovtsvn/linux_devlibs/include/zapp.h \
+ /home/ovtsvn/linux_devlibs/include/zspin.h \
+ /home/ovtsvn/linux_devlibs/include/zmod.h \
+ /home/ovtsvn/linux_devlibs/include/zmutex.h ../src/ctsreaderbase.h \
+ /home/ovtsvn/linux_devlibs/include/libngodobjtype.h ../src/cspeedctrl.h \
+ ../src/cm3u8gen.h ../src/define.h ../src/MuxLog.h ../src/csessionmgr.h \
+ /home/ovtsvn/linux_devlibs/include/zsafeobjpool.h ../src/sphttpmsg.hpp \
+ ../src/global.h ../src/cplaystatistics.h ../src/ctsreadervod.h \
+ /home/ovtsvn/linux_devlibs/include/libobj.h \
+ /home/ovtsvn/linux_devlibs/include/libngodobjtype.h \
+ /home/ovtsvn/linux_devlibs/include/libmantype.h ../src/ctsreadertstv.h \
+ ../src/protocal.h ../src/ctsreadervfs.h
+
+../src/chttpmodm3u8.h:
+
+../src/chttpmodbase.h:
+
+../src/cconnectionmgr.h:
+
+../src/cwritebuffer.h:
+
+/home/ovtsvn/linux_devlibs/include/zapp.h:
+
+/home/ovtsvn/linux_devlibs/include/zxml.h:
+
+/home/ovtsvn/linux_devlibs/include/tinyxml.h:
+
+/home/ovtsvn/linux_devlibs/include/zany.h:
+
+/home/ovtsvn/linux_devlibs/include/ztypes.h:
+
+/home/ovtsvn/linux_devlibs/include/shttpd.h:
+
+/home/ovtsvn/linux_devlibs/include/zlog.h:
+
+../src/cuserstatus.h:
+
+/home/ovtsvn/linux_devlibs/include/zevent.h:
+
+/home/ovtsvn/linux_devlibs/include/zsaferegister.h:
+
+/home/ovtsvn/linux_devlibs/include/zapp.h:
+
+/home/ovtsvn/linux_devlibs/include/zspin.h:
+
+/home/ovtsvn/linux_devlibs/include/zmod.h:
+
+/home/ovtsvn/linux_devlibs/include/zmutex.h:
+
+../src/ctsreaderbase.h:
+
+/home/ovtsvn/linux_devlibs/include/libngodobjtype.h:
+
+../src/cspeedctrl.h:
+
+../src/cm3u8gen.h:
+
+../src/define.h:
+
+../src/MuxLog.h:
+
+../src/csessionmgr.h:
+
+/home/ovtsvn/linux_devlibs/include/zsafeobjpool.h:
+
+../src/sphttpmsg.hpp:
+
+../src/global.h:
+
+../src/cplaystatistics.h:
+
+../src/ctsreadervod.h:
+
+/home/ovtsvn/linux_devlibs/include/libobj.h:
+
+/home/ovtsvn/linux_devlibs/include/libngodobjtype.h:
+
+/home/ovtsvn/linux_devlibs/include/libmantype.h:
+
+../src/ctsreadertstv.h:
+
+../src/protocal.h:
+
+../src/ctsreadervfs.h:

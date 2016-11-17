@@ -1,0 +1,57 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#ifndef CUSERSTATUS_H
+#define CUSERSTATUS_H
+
+#include <zevent.h>
+
+
+typedef enum _USER_TASK_STATUS_T
+{
+	ST_READY,//任务处理完毕，数据发送完毕
+	ST_PROCCESSED,//处理完毕，待发数据已放入缓冲或发送完毕
+	ST_BUSY//处理中
+}USER_TASK_STATUS_T;
+
+///用户任务状态维护
+class CUserStatus
+{
+public:
+	CUserStatus();
+	~CUserStatus();
+	
+        /**
+         * @brief 等待缓冲为空
+         * @return 超时返回 false
+         */
+	bool WaitForReady(int nTimeoutMs);
+	
+	void SetStatus(USER_TASK_STATUS_T st);
+	
+	USER_TASK_STATUS_T GetStatus();
+private:
+	
+	//是否就绪，没有被占用
+	USER_TASK_STATUS_T m_emStatus;
+	
+	ZEvent m_zevntWrite;
+};
+
+#endif // CUSERSTATUS_H

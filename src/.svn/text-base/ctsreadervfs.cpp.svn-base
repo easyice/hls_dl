@@ -1,0 +1,111 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "ctsreadervfs.h"
+#include "zapp.h"
+
+extern string g_strTestRootPath;
+
+CTsReaderVfs::CTsReaderVfs()
+{
+        m_fp = NULL;
+}
+
+CTsReaderVfs::~CTsReaderVfs()
+{
+
+}
+
+bool CTsReaderVfs::Open(OVT_STRU_CREATE_USER_OBJ_INFO stInfo)
+{
+        string pathname = g_strTestRootPath +stInfo.strAssetId;
+        
+        m_fp = fopen(pathname.c_str(),"rb");
+        
+        if (m_fp == NULL)
+        {
+                return false;
+        }
+
+        return true;
+}
+
+bool CTsReaderVfs::Open(const std::string& filename,const char* mode)
+{
+        //do not use
+        return true;
+}
+
+bool CTsReaderVfs::Close()
+{
+        if (m_fp != NULL)
+        {
+                fclose(m_fp);
+        }
+        m_fp = NULL;
+        
+        return true;
+}
+
+bool CTsReaderVfs::Seek(long long llTimeCode)
+{
+        //do not support 
+        return true;
+}
+
+bool CTsReaderVfs::Switch(float fScale)
+{
+        //do not support 
+        return true;
+}
+
+int CTsReaderVfs::ReadGop(BYTE* pBuf, int nBufSize,long long &beginpcrvalue,
+                long long &endpcrvalue, long long& llTimeCodePcr)
+{
+        if (m_fp == NULL)
+        {
+                return -F_ERR_INVALID_FD;
+        }
+        
+        int iRet;
+        int iItemSize = nBufSize / 188;
+        iItemSize *= 188;
+        iItemSize = min(188*1000,iItemSize);
+        
+        if (iItemSize <= 0)
+        {
+                return -F_ERR;
+        }
+        
+        iRet = fread(pBuf,1,iItemSize,m_fp);
+        endpcrvalue = ftell(m_fp);
+        
+        if (iRet <= 0)
+        {
+                iRet = -F_ERR_REACH_END;
+        }
+        return iRet;
+}
+
+int CTsReaderVfs::Read(BYTE* pBuf, int nBufSize)
+{
+        //do not use
+        return 0;
+}
+

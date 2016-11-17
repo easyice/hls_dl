@@ -1,0 +1,168 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "chttpmodts.h"
+#include "protocal.h"
+#include "ctsreadervfs.h"
+
+
+extern int g_nGopPerSeg;
+
+CHttpModTs::CHttpModTs()
+{
+
+}
+
+CHttpModTs::~CHttpModTs()
+{
+
+}
+
+SEND_RES_T CHttpModTs::ProcessNewRequest(SP_HttpRequest* request, CONNECTION_T* pConn)
+{
+	return ProcessNewRequestCommMuti(request,pConn);
+}
+
+
+int CHttpModTs::OnRequest(SP_HttpRequest* request, CONNECTION_T* pConn,int& status)
+{
+        assert(pConn->pSession != NULL);
+        
+        int ret;
+        if ( (ret = ReadAndSegmente(pConn)) <= 0 )
+        {
+                status = 404;
+                return Response404();
+        }
+        
+        status = 200;
+        return Response200(MIME_CHUNK,ret);
+}
+
+SEND_RES_T CHttpModTs::HttpSendBuffer(CONNECTION_T* pConn, bool bAddHead)
+{
+        //忽略 bAddHead
+        
+	SEND_RES_T ret = RES_SUCCESS;
+
+        if ( (ret = SendOrCopyToUserBuffer((BYTE*)m_pHttpHead,m_nHttpHeadLen,pConn)) == RES_ERROR )
+        {       
+                return RES_ERROR;
+        }
+        else if (ret == RES_AGAIN)
+        {
+                CopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+                return RES_AGAIN;
+        }
+        else if (ret == RES_SUCCESS)
+        {
+                return SendOrCopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+        }
+
+        return ret;
+}
+
+int CHttpModTs::OnRequestContinue(CONNECTION_T* pConn)
+{
+        if (pConn->pStatus->GetStatus() == ST_PROCCESSED)
+        {
+                vs_log(LV_DEBUG_EV,"processed");
+                return 0;
+        }
+        
+        int ret = ReadAndSegmente(pConn);
+        
+        //ret等于0时，发送一个0大小的chunk，
+        //如果在读取最后一段数据后可预知文件末尾，就不需要发送一个0大小的chunk
+        if (ret < 0)
+        {
+                return ret;
+        }
+   
+        m_nHttpHeadLen = sprintf((char*)m_pHttpHead,"%x\r\n",ret);
+        
+        
+        return 1;
+}
+
+void CHttpModTs::GenHttpHead(int content_len)
+{
+
+}
+
+int CHttpModTs::ReadAndSegmente(CONNECTION_T* pConn)
+{
+        if (pConn->pSession->bEof)
+        {
+                return -1;
+        }
+        
+        pthread_mutex_lock(&pConn->pSession->mutex);
+        
+        //read
+        long long beginpcrvalue;
+        long long endpcrvalue;
+        long long llTimeCodePcr;
+
+        int nReaded = pConn->pSession->pTsReader->ReadGop(m_pSendBuf,
+                                                            m_nSendBufSize-5, // for \r\n0\r\n
+                                                            beginpcrvalue,
+                                                            endpcrvalue,
+                                                            llTimeCodePcr);
+
+        if (nReaded <= 0)
+        {
+                pConn->pSession->pTsReader->Close();
+                pConn->pSession->pM3u8Gen->OnFinish();
+                if (nReaded == -F_ERR_REACH_END)
+                {
+                        ZLOG(ZLT_INFO,"读取文件到末尾，关闭文件");
+                }
+                else
+                {
+                        ZLOG(ZLT_ERROR,"读取错误，关闭文件",V(nReaded));
+                }
+                
+                pConn->pSession->bEof = true;
+                memcpy(m_pSendBuf,"\r\n0\r\n\r\n",7);
+                pConn->pStatus->SetStatus(ST_PROCCESSED);
+                m_nSendBufLen = 7;
+                pthread_mutex_unlock(&pConn->pSession->mutex);
+                return 0;
+        }
+        
+        pConn->pSession->nReadedGop++;
+        
+        if (pConn->pSession->nReadedGop % g_nGopPerSeg == 0)
+        {
+                memcpy(m_pSendBuf+nReaded,"\r\n0\r\n\r\n",7);
+                pConn->pStatus->SetStatus(ST_PROCCESSED);
+                pConn->pSession->pM3u8Gen->UpdateFileName(endpcrvalue);
+                m_nSendBufLen = nReaded + 7;
+        }
+        else
+        {
+                memcpy(m_pSendBuf+nReaded,"\r\n",2);
+                m_nSendBufLen = nReaded + 2;
+        }
+        
+        pthread_mutex_unlock(&pConn->pSession->mutex);
+        
+        return nReaded;
+}

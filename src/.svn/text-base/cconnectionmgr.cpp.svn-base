@@ -1,0 +1,240 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "cconnectionmgr.h"
+
+#include <stdio.h>
+#include <sys/epoll.h>
+
+#include <assert.h>
+
+#include "define.h"
+
+
+CConnectionMgr* CConnectionMgr::m_pStatic = NULL;
+
+
+
+CConnectionMgr::CConnectionMgr()
+{
+	m_nMaxFds = 0;
+	m_nMaxConn = 0;
+	m_nEpfd = -1;
+	m_pConnectionIdx = NULL;
+	m_pConnectionPoll = NULL;
+	m_nCurConnCount = 0;
+        m_nTimeOut = 60;
+        
+        pthread_mutex_init ( &m_mutex,NULL );
+}
+
+CConnectionMgr::~CConnectionMgr()
+{
+        pthread_mutex_destroy (&m_mutex);
+}
+
+CConnectionMgr* CConnectionMgr::GetInstancePtr()
+{
+	if (NULL == m_pStatic)
+	{
+		m_pStatic = new CConnectionMgr();
+	}
+
+	return m_pStatic;
+}
+
+bool CConnectionMgr::Init(int maxconn,int nWBufSize)
+{
+	m_nMaxConn = maxconn;
+	m_nMaxFds = m_nMaxConn*3; // one user for three fds
+	
+	m_pConnectionIdx = new CONNECTION_T*[m_nMaxFds];
+	
+	for (int i = 0 ; i < m_nMaxFds; i++)
+	{
+		m_pConnectionIdx[i] = NULL;
+	}
+	
+	m_pConnectionPoll = new ZSafeObjPool<CONNECTION_T>("ConnectionPoll",m_nMaxConn);
+
+	for (int i = 0 ; i < m_nMaxConn; i++)
+	{
+		CONNECTION_T *pConn = m_pConnectionPoll->Alloc();
+		assert(pConn != NULL);
+		
+		pthread_mutex_init ( &pConn->mutex,NULL );
+		pConn->pWriteBuffer = new CWriteBuffer();
+		pConn->pStatus = new CUserStatus();
+		pConn->pSpeedCtl = new CSpeedCtrl();
+		pConn->pWriteBuffer->Init(nWBufSize);
+		pConn->pSession = NULL;
+		
+		m_pConnectionIdx[i] = pConn;
+	}
+	for (int i = 0 ; i < m_nMaxConn; i++)
+	{
+		m_pConnectionPoll->Release(m_pConnectionIdx[i]);
+		m_pConnectionIdx[i] = NULL;
+	}
+	
+	return true;
+}
+
+
+void CConnectionMgr::SetEpollFd(int epfd)
+{
+	m_nEpfd = epfd;
+}
+
+CONNECTION_T* CConnectionMgr::AllocConnection(int sock)
+{
+	if (sock < 0)
+	{
+		ZLOG(ZLT_ERROR,"sock 异常");
+		return NULL;
+	}
+	if (sock > m_nMaxFds -1)
+	{
+		ZLOG(ZLT_ERROR,"超过最大支持的FD数量",V(sock),V(m_nMaxFds));
+		return NULL;
+	}
+	
+	if (m_pConnectionIdx[sock] != NULL)
+	{
+		ZLOG(ZLT_ERROR,"上一个用户连接尚未释放",V(sock),V(m_nMaxFds));
+		return NULL;
+	}
+	
+	CONNECTION_T *pConn = m_pConnectionPoll->Alloc();
+	if (pConn == NULL)
+	{
+		ZLOG(ZLT_ERROR,"用户数量已满无法为用户分配连接资源",V(sock));
+		return NULL;
+	}
+	
+	pthread_mutex_lock(&pConn->mutex);
+	m_pConnectionIdx[sock] = pConn;
+	
+	if (pConn->sock != -1)
+	{
+		ZLOG(ZLT_WARNING,"未关闭的sock,强制关闭",V(pConn->sock));
+		CloseConnection(pConn);
+	}
+	
+	ResetConnection(pConn);
+	pConn->sock = sock;
+        time(&pConn->updateTime);
+	
+	pthread_mutex_unlock(&pConn->mutex);
+	
+        pthread_mutex_lock(&m_mutex);
+	m_nCurConnCount++;
+        pthread_mutex_unlock(&m_mutex);
+        
+	return pConn;
+}
+
+
+void CConnectionMgr::CloseConnection(CONNECTION_T* pConn)
+{
+	if (pConn->sock < 0 || pConn->sock >= m_nMaxFds)
+	{
+		ZLOG(ZLT_ERROR,"不该出现的",V(pConn->sock));
+		return ;
+	}
+	if (m_pConnectionIdx[pConn->sock] == NULL)
+	{
+		return ;
+	}
+	m_pConnectionIdx[pConn->sock] = NULL;
+	
+	struct epoll_event ev;
+	ev.data.ptr = NULL;
+        ev.events=0;
+	epoll_ctl(m_nEpfd,EPOLL_CTL_DEL,pConn->sock,&ev);
+	
+	int sock = pConn->sock;
+	
+	ResetConnection(pConn);
+        
+	close(sock);
+	
+	vs_log(LV_DEBUG_EV,"CloseConnection,tid=%d",gettid());
+	m_pConnectionPoll->Release(pConn);
+
+        pthread_mutex_lock(&m_mutex);
+	m_nCurConnCount--;
+        pthread_mutex_unlock(&m_mutex);
+}
+
+int CConnectionMgr::GetConnectionCount()
+{
+	return m_nCurConnCount;
+}
+
+void CConnectionMgr::ResetConnection(CONNECTION_T* pConn)
+{
+        pConn->sock = -1;
+        pConn->updateTime = 0;
+        pConn->strRemainReq.clear();
+        pConn->emReqType = REQ_TYPE_UNKNOWN;
+        pConn->pWriteBuffer->ReSetBuffer();
+        pConn->pStatus->SetStatus(ST_READY);
+        pConn->pSpeedCtl->Reset();
+        
+        if (pConn->pSession != NULL)
+        {
+                pConn->pSession->bUseing = false;
+        }
+        pConn->pSession = NULL;
+}
+
+void CConnectionMgr::SetConnectionTimeOut(time_t nTimeOut)
+{
+        m_nTimeOut = nTimeOut;
+}
+
+void CConnectionMgr::CheckTimeOut()
+{
+        time_t curTime;
+        time(&curTime);
+
+        for (int i = 0; i < m_nMaxFds; i++)
+        {
+                CONNECTION_T* pConn = m_pConnectionIdx[i];
+                if (pConn == NULL)
+                {
+                        continue;
+                }
+                
+                time_t oldTime = pConn->updateTime;
+                if (curTime - oldTime > m_nTimeOut)
+                {
+                        ZLOG(ZLT_USER,"删除超时的连接",V(pConn->sock));
+                        
+                        pthread_mutex_lock(&pConn->mutex);
+                        CloseConnection(pConn);
+                        pthread_mutex_unlock(&pConn->mutex);
+                }
+                      
+        } //!for
+
+}
+
+

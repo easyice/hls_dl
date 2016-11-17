@@ -1,0 +1,74 @@
+#include "protocal.h"
+#include <stdio.h>
+
+namespace http
+{
+        
+        //header
+        const char * HEADER_RANGE        = "Range";
+        
+
+        const struct vec_str_t known_http_methods[] = 
+        {
+                {"GET",		3},
+                {"POST",	4},
+                {"PUT",		3},
+                {"DELETE",	6},
+                {"HEAD",	4},
+                {NULL,		0}
+        };
+
+}
+
+
+
+
+namespace vs_protocal
+{
+	const char * URI_M3U8 = "/PLAY";
+	const char * URI_SWITCH = "/SWITCH";
+	const char * URI_SEEK = "/SEEK";
+	const char * URI_GETTS = "/GETTS";
+	
+	const char * URI_TEST_VIDEO = "/VIDEO";
+	
+	const char * ST_VOD = "VOD";
+	const char * ST_TSTV = "TSTV";
+	const char * ST_LIVE = "LIVE";
+	
+	//for play
+	const char * PARAM_SESSIONID     = "SessionID";
+        const char * PARAM_AID           = "aid_";
+        const char * PARAM_PID           = "pid_";
+        const char * PARAM_RATE          = "rate_";
+        const char * PARAM_SP            = "sp";
+        const char * PARAM_ST            = "st";
+        const char * PARAM_SEED          = "seed_";
+        const char * PARAM_ST_VOD        = "vod";
+        const char * PARAM_ST_TSTV       = "tstv";
+        const char * PARAM_ST_LIVE       = "live";
+        const char * PARAM_ST_VFS        = "vfs";
+	
+	//for switch
+        const char * PARAM_SCALE         = "scale";
+        const char * PARAM_LOCALTC       = "LocalTimecode";
+
+	//for seek
+        const char * PARAM_TIMECODE      = "timecode";
+
+	//for getts
+        const char * PARAM_TS_AID        = "aid";
+        const char * PARAM_TS_PID        = "pid";
+        const char * PARAM_FILENAME      = "filename";
+	
+
+}
+
+namespace m3u8
+{
+        const char * EXT_X_ENDLIST              = "#EXT-X-ENDLIST";
+        const char * EXT_X_DISCONTINUITY        = "#EXT-X-DISCONTINUITY";
+        const char * EXT_X_ALLOW_CACHE_NO       = "#EXT-X-ALLOW-CACHE:NO";
+        const char * EXT_X_ALLOW_CACHE_YES      = "#EXT-X-ALLOW-CACHE:YES";
+}
+

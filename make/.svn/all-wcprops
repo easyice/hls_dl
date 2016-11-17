@@ -1,0 +1,179 @@
+K 25
+svn:wc:ra_dav:version-url
+V 44
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make
+END
+cconnectionmgr.d
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/cconnectionmgr.d
+END
+chttpserver.d
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/chttpserver.d
+END
+chttpmodtestvideo.d
+K 25
+svn:wc:ra_dav:version-url
+V 64
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/chttpmodtestvideo.d
+END
+MuxLog.d
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/MuxLog.d
+END
+ctsreaderfile.d
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/ctsreaderfile.d
+END
+chttpmodbase.d
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/chttpmodbase.d
+END
+chttpmodtestpage.d
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/chttpmodtestpage.d
+END
+cplaystatistics.d
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/cplaystatistics.d
+END
+clfthreadpoll.d
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/clfthreadpoll.d
+END
+protocal.d
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/protocal.d
+END
+main.d
+K 25
+svn:wc:ra_dav:version-url
+V 51
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/main.d
+END
+cuserstatus.d
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/cuserstatus.d
+END
+chttpmodctl.d
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/chttpmodctl.d
+END
+ctsreaderstd.d
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/ctsreaderstd.d
+END
+cwritebuffer.d
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/cwritebuffer.d
+END
+cspeedctrl.d
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/cspeedctrl.d
+END
+cm3u8gen.d
+K 25
+svn:wc:ra_dav:version-url
+V 55
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/cm3u8gen.d
+END
+chttpmodts.d
+K 25
+svn:wc:ra_dav:version-url
+V 57
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/chttpmodts.d
+END
+sphttpmsg.d
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/sphttpmsg.d
+END
+crequestprocess.d
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/crequestprocess.d
+END
+Makefile
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/work/!svn/ver/98/ott/ott_vss/trunk/make/Makefile
+END
+chttpcore.d
+K 25
+svn:wc:ra_dav:version-url
+V 56
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/chttpcore.d
+END
+ctsreaderlive.d
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/ctsreaderlive.d
+END
+csessionmgr.d
+K 25
+svn:wc:ra_dav:version-url
+V 58
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/csessionmgr.d
+END
+chttpmodm3u8.d
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/work/!svn/ver/90/ott/ott_vss/trunk/make/chttpmodm3u8.d
+END
+global.d
+K 25
+svn:wc:ra_dav:version-url
+V 53
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/global.d
+END
+ceventhandle.d
+K 25
+svn:wc:ra_dav:version-url
+V 59
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/ceventhandle.d
+END
+sputils.d
+K 25
+svn:wc:ra_dav:version-url
+V 54
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/sputils.d
+END
+ctsreaderbase.d
+K 25
+svn:wc:ra_dav:version-url
+V 60
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/ctsreaderbase.d
+END

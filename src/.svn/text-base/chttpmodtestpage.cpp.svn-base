@@ -1,0 +1,150 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "chttpmodtestpage.h"
+#include "cconnectionmgr.h"
+#include "csessionmgr.h"
+#include <stdio.h>
+
+extern string g_strTestRootPath;
+
+
+CHttpModTestPage::CHttpModTestPage()
+{
+
+}
+
+CHttpModTestPage::~CHttpModTestPage()
+{
+
+}
+
+SEND_RES_T CHttpModTestPage::ProcessNewRequest(SP_HttpRequest* request, CONNECTION_T* pConn)
+{
+	return ProcessNewRequestCommOnce(request,pConn);
+}
+
+int CHttpModTestPage::OnRequest(SP_HttpRequest* request, CONNECTION_T* pConn,int& status)
+{
+        string uri = request->getURI();
+        string ext;
+        if (uri.rfind(".") != string::npos)
+        {
+                ext = uri.substr(uri.rfind("."),uri.length());
+        }
+        
+        if( 0 == strcasecmp( ext.c_str(), ".htm" ) ||
+                0 == strcasecmp( ext.c_str(), ".html" ))
+        {
+                string pathname = g_strTestRootPath + (uri.c_str() + 1);
+        
+                vs_log(LV_DEBUG_EV,"sock=%04d,open file:%s,tid=%ld,status=%d",pConn->sock,
+                  pathname.c_str(),gettid(),pConn->pStatus->GetStatus());
+                
+
+                FILE* fp = fopen(pathname.c_str(),"r");
+                if (fp == NULL)
+                {
+                        status = 404;
+                        return Response404();
+                }
+
+                m_nSendBufLen = fread(m_pSendBuf,1,m_nSendBufSize,fp);
+                vs_log(LV_DEBUG_IO,"sock=%04d,read file:%d", pConn->sock,m_nSendBufLen);
+
+                
+                fclose(fp);
+                vs_log(LV_DEBUG_EV,"sock=%04d,read finish,close file.m_nSendBufLen=%d",pConn->sock,m_nSendBufLen);
+ 
+        }
+        else
+        {
+                m_nSendBufLen = sprintf((char*)m_pSendBuf,"%s", "<html>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<head>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<title>OTT Video Server</title>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "</head>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<body bgcolor=\"white\" text=\"black\">\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<br><br><br>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<center><h1>Welcome to OTT Video Server!</h1></center>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "<br><br><br>Server Info:<br>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"<br>Connection Count:%d<br>\r\n", 
+                                         CConnectionMgr::GetInstancePtr()->GetConnectionCount());
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"Session Count:%d<br>\r\n", 
+                                         CSessionMgr::GetInstancePtr()->GetUserCount());
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "</body>\r\n");
+                m_nSendBufLen += sprintf((char*)m_pSendBuf + m_nSendBufLen ,"%s", "</html>\r\n");
+        }
+        GenHttpHead(m_nSendBufLen);
+        
+        status = 200;
+	return 1;
+}
+
+SEND_RES_T CHttpModTestPage::HttpSendBuffer(CONNECTION_T* pConn, bool bAddHead)
+{
+	SEND_RES_T ret = RES_SUCCESS;
+    
+        if (bAddHead)
+        {   
+                if ( (ret = SendOrCopyToUserBuffer((BYTE*)m_pHttpHead,m_nHttpHeadLen,pConn)) == RES_ERROR )
+                {    
+                        return RES_ERROR;
+                }   
+                else if (ret == RES_AGAIN)
+                {   
+                        CopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+                        return RES_AGAIN;
+                }   
+        }   
+
+	ret = SendOrCopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+	
+	if (pConn->pWriteBuffer->GetDataLen() == 0)
+	{
+		return RES_ACTIVE_CLOSE;
+	}
+	else
+	{
+		cout << "不关闭" << flush << endl;
+	}
+	
+	return ret;
+}
+
+void CHttpModTestPage::GenHttpHead(int content_len)
+{
+	int code = 200;
+	char msg[] = "OK";
+	char type[] = "text/html";
+
+	int bytes = sprintf((char*)m_pHttpHead,"HTTP/1.1 %d %s\r\n", code, msg);
+	bytes += sprintf((char*)m_pHttpHead + bytes,"Content-type: %s\r\n", type);
+        bytes += sprintf((char*)m_pHttpHead + bytes,"Server: %s\r\n",SERVER_LOGO);
+	bytes += sprintf((char*)m_pHttpHead + bytes,"Connection: close\r\n");
+	bytes += sprintf((char*)m_pHttpHead + bytes,"Content-Length: %d\r\n\r\n", content_len);
+	
+
+	m_nHttpHeadLen = bytes;
+}
+
+int CHttpModTestPage::OnRequestContinue(CONNECTION_T* pConn)
+{
+        //不会使用
+        return 0;
+}

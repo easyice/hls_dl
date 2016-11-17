@@ -1,0 +1,100 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#ifndef CM3U8GEN_H
+#define CM3U8GEN_H
+
+#include <iostream>
+#include <list>
+
+using namespace std;
+
+
+typedef struct _SCALE_FILENAME_T
+{
+    int iScale;
+    long long llFilename;
+}SCALE_FILENAME_T;
+
+class CM3U8Gen
+{
+public:
+	CM3U8Gen();
+	~CM3U8Gen();
+	
+	/**
+	 * @brief 初始化生成列表的必要参数
+	 * @param sid SessionID
+	 * @param st ServiceType
+	 * @param aid AssetID
+	 * @param pid providerID
+	 * @param scale 倍速
+	 */
+	void Init(const string& sid,const string& st,const string& aid,const string& pid,int scale);
+	
+	/**
+	 * @brief 通知切换倍速
+	 */
+	void Switch(int scale);
+        
+        void OnSeek();
+	
+	/**
+	 * @brief 更新下一个文件名。
+	 */
+	void UpdateFileName(long long llFileName);
+	
+	/**
+	 * @brief 生成列表
+	 * @param pBuf 存储缓冲
+	 * @param nBufLen 缓冲大小
+	 * @param filename filename
+	 * @return 生成数据长度
+	 */
+	int GenList(char* pBuf,int nBufLen);
+        
+        void OnFinish();
+        
+private:
+        void OnDisContinue();
+        
+private:
+	string m_strSt;
+	string m_strAid;
+	string m_strPid;
+	string m_strSid; //sessionid
+	//string m_strScale;
+        
+	int m_iCurScale;
+        list<SCALE_FILENAME_T> m_lstScaleFilename;
+	
+        /**
+	 * m_uSequence是每个m3u8文件中第一个ts文件的序
+	 * 列号，它不是必须的，但是如果有的话，会随着ts
+	 * 文件的下载不断增加
+	 */
+	unsigned int m_uSequence;
+        
+        pthread_mutex_t m_mutex;
+        
+        //流是否已结束
+        bool m_bStreamFinish;
+};
+
+#endif // CM3U8GEN_H

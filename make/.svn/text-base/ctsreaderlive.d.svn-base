@@ -1,0 +1,12 @@
+ctsreaderlive.o: ../src/ctsreaderlive.cpp ../src/ctsreaderlive.h \
+ ../src/ctsreaderbase.h \
+ /home/ovtsvn/linux_devlibs/include/libngodobjtype.h \
+ /home/ovtsvn/linux_devlibs/include/ztypes.h
+
+../src/ctsreaderlive.h:
+
+../src/ctsreaderbase.h:
+
+/home/ovtsvn/linux_devlibs/include/libngodobjtype.h:
+
+/home/ovtsvn/linux_devlibs/include/ztypes.h:

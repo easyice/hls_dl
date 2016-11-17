@@ -1,0 +1,29 @@
+#ifndef GLOBAL_H
+#define GLOBAL_H
+
+
+#include <stdio.h>
+#include <ctype.h>
+
+
+
+extern int get_headers_len(const char *buf, size_t buflen);
+
+extern int set_non_blocking_mode(int fd);
+
+
+extern const  char* SERVER_LOGO;
+
+
+
+
+
+
+
+
+
+
+
+
+
+#endif

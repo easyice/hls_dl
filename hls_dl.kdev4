@@ -1,0 +1,4 @@
+[Project]
+Manager=KDevCMakeManager
+Name=hls_dl
+VersionControl=

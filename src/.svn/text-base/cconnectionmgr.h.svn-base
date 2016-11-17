@@ -1,0 +1,130 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#ifndef CCONNECTIONMGR_H
+#define CCONNECTIONMGR_H
+
+#include "cwritebuffer.h"
+#include "cuserstatus.h"
+#include "ctsreaderbase.h"
+#include "cspeedctrl.h"
+#include "cm3u8gen.h"
+#include "define.h"
+#include "csessionmgr.h"
+#include <zsafeobjpool.h>
+
+
+
+typedef struct _CONNECTION_T
+{
+	_CONNECTION_T()
+	{
+		sock = -1;
+		pWriteBuffer = NULL;
+		pStatus = NULL;
+		pSpeedCtl = NULL;
+		emReqType = REQ_TYPE_UNKNOWN;
+		pSession = NULL;
+	}
+	
+	int sock;
+	
+	REQ_TYPE_T emReqType;
+        
+        //最后活动时间
+        time_t updateTime;
+	
+	/********************连接退出不销毁*********************/
+	// 用避免多线程执行 用户任务
+	pthread_mutex_t mutex;
+
+	// 用户发送缓冲，必须是可以直接发送的数据
+	CWriteBuffer *pWriteBuffer;
+	
+	//剩余的请求字符串，未解析成功的 
+	std::string strRemainReq;
+	
+	//用户请求处理状态：处理完毕/正在处理
+	CUserStatus* pStatus;
+	
+	CSpeedCtrl* pSpeedCtl;
+	
+	//会话指针，不是所有请求都具备
+	SESSION_T* pSession;
+}CONNECTION_T;
+
+
+///会话管理
+class CConnectionMgr
+{
+        friend class CWebInterface;
+public:
+	~CConnectionMgr();
+	static CConnectionMgr* GetInstancePtr();
+	
+	//先调用以下两个函数进行初始化
+	
+	/**
+	 * @param maxconn 最大同时连接数
+	 * @param nWBufSize 输出缓冲大小
+	 */
+	bool Init(int maxconn,int nWBufSize);
+	void SetEpollFd(int epfd);
+	
+	/**
+	 * @brief 为用户分配连接资源。内部执行锁保护
+	 */
+	CONNECTION_T* AllocConnection(int sock);
+	
+	/**
+	 * @brief 关闭socket，释放资源,外部执行锁保护
+	 */
+	void CloseConnection(CONNECTION_T* pConn);
+	
+	int GetConnectionCount();
+        
+        void SetConnectionTimeOut(time_t nTimeOut);
+        
+        /**
+         * @brief 检测并踢出超时连接
+         */
+        void CheckTimeOut();
+private:
+	CConnectionMgr();
+	
+        void ResetConnection(CONNECTION_T* pConn);
+private:
+	static CConnectionMgr* m_pStatic;
+	CONNECTION_T** m_pConnectionIdx;
+	
+	ZSafeObjPool<CONNECTION_T> *m_pConnectionPoll;
+	
+	int m_nMaxFds;
+	int m_nMaxConn;
+	int m_nEpfd;
+	
+	int m_nCurConnCount;
+        
+        pthread_mutex_t m_mutex;
+        
+        //秒
+        time_t m_nTimeOut;
+};
+
+#endif // CONNECTION_T

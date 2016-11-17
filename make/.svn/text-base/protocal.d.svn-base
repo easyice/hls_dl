@@ -1,0 +1,3 @@
+protocal.o: ../src/protocal.cpp ../src/protocal.h
+
+../src/protocal.h:

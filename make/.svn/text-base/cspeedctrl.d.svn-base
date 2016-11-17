@@ -1,0 +1,3 @@
+cspeedctrl.o: ../src/cspeedctrl.cpp ../src/cspeedctrl.h
+
+../src/cspeedctrl.h:

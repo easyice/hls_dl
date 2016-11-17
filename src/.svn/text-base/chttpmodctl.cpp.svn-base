@@ -1,0 +1,183 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  <copyright holder> <email>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
+
+
+#include "chttpmodctl.h"
+#include "protocal.h"
+#include "global.h"
+
+CHttpModCtl::CHttpModCtl()
+{
+
+}
+
+CHttpModCtl::~CHttpModCtl()
+{
+
+}
+
+SEND_RES_T CHttpModCtl::ProcessNewRequest(SP_HttpRequest* request, CONNECTION_T* pConn)
+{
+        return ProcessNewRequestCommOnce(request,pConn);
+}
+
+
+void CHttpModCtl::GenHttpHead(int content_len)
+{
+	int code = 200;
+        char msg[] = "OK";
+        char type[] = "text/plain";
+
+        int bytes = sprintf((char*)m_pHttpHead,"HTTP/1.1 %d %s\r\n", code, msg);
+        bytes += sprintf((char*)m_pHttpHead + bytes,"Content-type: %s\r\n", type);
+        bytes += sprintf((char*)m_pHttpHead + bytes,"Server: %s\r\n",SERVER_LOGO);
+        bytes += sprintf((char*)m_pHttpHead + bytes,"Connection: close\r\n");
+        bytes += sprintf((char*)m_pHttpHead + bytes,"Content-Length: %d\r\n\r\n", content_len);
+
+
+        m_nHttpHeadLen = bytes;
+
+}
+
+SEND_RES_T CHttpModCtl::HttpSendBuffer(CONNECTION_T* pConn, bool bAddHead)
+{
+	SEND_RES_T ret = RES_SUCCESS;
+    
+        if (bAddHead)
+        {   
+                if ( (ret = SendOrCopyToUserBuffer((BYTE*)m_pHttpHead,m_nHttpHeadLen,pConn)) == RES_ERROR )
+                {    
+                        return RES_ERROR;
+                }   
+                else if (ret == RES_AGAIN)
+                {   
+                        CopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+                        return RES_AGAIN;
+                }   
+        }   
+
+        return SendOrCopyToUserBuffer(m_pSendBuf,m_nSendBufLen,pConn);
+
+}
+
+int CHttpModCtl::OnRequest(SP_HttpRequest* request, CONNECTION_T* pConn,int& status)
+{
+        using namespace vs_protocal;
+        
+        const char* uri = request->getURI();
+	bool ret;
+        
+        if( 0 == strcasecmp( uri, URI_SWITCH ) )
+        {
+                ret = OnRequestSwitch(request,pConn);
+        }
+        else if( 0 == strcasecmp( uri, URI_SEEK ) )
+        {
+                ret = OnRequestSeek(request,pConn);
+        }
+
+	//response
+	if (ret)
+	{
+		m_nSendBufLen = sprintf((char*)m_pSendBuf,"%s", "ok!\r\n");
+	}
+	else
+	{
+		m_nSendBufLen = sprintf((char*)m_pSendBuf,"%s", "faild!\r\n");
+	}
+	GenHttpHead(m_nSendBufLen);
+        status = 200;
+        return 1;
+}
+
+
+
+int CHttpModCtl::OnRequestContinue(CONNECTION_T* pConn)
+{
+        //不会使用
+        return 0;
+}
+
+bool CHttpModCtl::OnRequestSeek(SP_HttpRequest* request, CONNECTION_T* pConn)
+{
+        using namespace vs_protocal;
+        
+        string strSessionId;
+        string strTimecode;
+
+        for( int i = 0; i < request->getParamCount(); i++ )
+        {
+                if( 0 == strcasecmp( request->getParamName(i), PARAM_SESSIONID ) )
+                {
+                        strSessionId = request->getParamValue(i);
+                }
+                else if( 0 == strcasecmp( request->getParamName(i), PARAM_TIMECODE ) )
+                {
+                        strTimecode = request->getParamValue(i);
+                }
+        }
+
+
+        if ( !pConn->pSession->pTsReader->Seek(atoll(strTimecode.c_str())) )
+	{
+		ZLOG(ZLT_ERROR,"Seek失败！",V(strSessionId),V(strTimecode));
+		return false;
+	}
+	
+	pConn->pSession->pM3u8Gen->OnSeek();
+
+	return true;
+}
+
+bool CHttpModCtl::OnRequestSwitch(SP_HttpRequest* request, CONNECTION_T* pConn)
+{
+        using namespace vs_protocal;
+        
+        string strSessionId;
+        string strScale;
+        string strLocalTimecode;
+        
+        for( int i = 0; i < request->getParamCount(); i++ )
+        {
+                if( 0 == strcasecmp( request->getParamName(i), PARAM_SESSIONID ) )
+                {
+                        strSessionId = request->getParamValue(i);
+                }
+                else if( 0 == strcasecmp( request->getParamName(i), PARAM_SCALE ) )
+                {
+                        strScale = request->getParamValue(i);
+                }
+                else if( 0 == strcasecmp( request->getParamName(i), PARAM_LOCALTC ) )
+                {
+                        strLocalTimecode = request->getParamValue(i);
+                }
+        }
+        
+        if ( !pConn->pSession->pTsReader->Switch(atoi(strScale.c_str())) )
+	{
+		ZLOG(ZLT_ERROR,"切换倍速失败！",V(strSessionId),V(strLocalTimecode));
+		return false;
+	}
+
+	pConn->pSession->pM3u8Gen->Switch(atoi(strScale.c_str()));
+	return true;
+}
+
+
+

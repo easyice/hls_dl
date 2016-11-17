@@ -1,0 +1,67 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#ifndef CHTTPSERVER_H
+#define CHTTPSERVER_H
+
+
+#include <pthread.h>
+#include <sys/epoll.h>
+#include <iostream>
+#include "define.h"
+#include "cconnectionmgr.h"
+
+#define MAX_WAIT_EVENTS 32
+
+
+using namespace std;
+
+
+class CHttpServer
+{
+
+public:
+	CHttpServer();
+	~CHttpServer();
+    
+	void SetListenPort(const string& port);
+	bool Init();
+	epoll_event WaitForOneEvent();
+        
+        int GetEpFd();
+        int GetListenFd();
+private:
+	bool OpenListening();
+	void OnAccept();
+
+private:
+	int m_nEpfd;
+	int m_nListenfd;
+	pthread_t m_acceptThreadid;
+	
+	struct epoll_event m_events[MAX_WAIT_EVENTS];
+	int m_nFdCount;
+	int m_nCurFdIndex;
+
+	string m_strPort;
+        
+        CONNECTION_T* m_pListenEv;
+};
+
+#endif // CHTTPSERVER_H

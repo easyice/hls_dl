@@ -1,0 +1,115 @@
+#include "MuxLog.h"
+#include <iostream>
+
+using namespace std;
+
+// 类的静态成员变量要在类体外进行定义
+CMuxLog* CMuxLog::m_pStatic = NULL;
+
+
+
+void vs_log(int level, const char *fmt, ...)
+{
+	 va_list vl;
+    va_start(vl, fmt);
+    
+    CMuxLog::GetInstancePtr()->mux_vlog(level, fmt, vl);
+    va_end(vl);
+}
+
+static void logfun(int level,string sInfo)
+{
+	switch(level)
+	{
+		case LV_DEBUG_IO:
+		case LV_DEBUG_EV:
+			printf("debug: %s\n",sInfo.c_str());
+			break;
+		case LV_USER:
+			printf("user: %s\n",sInfo.c_str());
+			break;		
+		case LV_WARNING:	
+			printf("waring: %s\n",sInfo.c_str());
+			break;
+		case LV_ERROR:
+			printf("error: %s\n",sInfo.c_str());
+			break;
+		default:
+			printf("%s\n",sInfo.c_str());
+			break;
+	}
+}
+
+typedef void (*pfLogFun)(int level,std::string sInfo);
+
+
+#define MUX_LOG(level,sInfo) \
+if (g_varpfLogFun!=NULL) \
+{\
+	g_varpfLogFun(level,sInfo);\
+}
+
+
+//需要对外提供log接口时将此全局变量设置为别的函数指针
+pfLogFun g_varpfLogFun = logfun;
+
+
+CMuxLog::CMuxLog(void)
+{
+	pthread_mutex_init(&m_muxLog,NULL);
+	m_nLogLevel = 3;
+}
+
+CMuxLog::~CMuxLog(void)
+{
+	pthread_mutex_destroy(&m_muxLog);
+}
+
+CMuxLog* CMuxLog::GetInstancePtr()
+{
+	if (NULL == m_pStatic)
+	{
+		m_pStatic = new CMuxLog();
+	}
+
+	return m_pStatic;
+}
+
+void CMuxLog::SetLogLevel(int level)
+{
+	m_nLogLevel = level;
+}
+
+
+void CMuxLog::mux_vlog(int level, const char *fmt, va_list vl)
+{
+	if (level < m_nLogLevel)
+	{
+		return;
+	}
+	
+	pthread_mutex_lock(&m_muxLog);
+
+	char line[1024];
+	line[0]=0;
+	vsnprintf(line + strlen(line), sizeof(line) - strlen(line), fmt, vl);
+
+	MUX_LOG(level,line);
+	// sanitize(line);
+	//colored_fputs(av_clip(level>>3, 0, 6), line);
+
+	pthread_mutex_unlock(&m_muxLog);
+}
+
+void CMuxLog::Log(int level, const char *fmt, ...)
+{
+    va_list vl;
+    va_start(vl, fmt);
+    
+    mux_vlog(level, fmt, vl);
+    va_end(vl);
+}
+
+
+
+

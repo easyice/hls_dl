@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/.config
+END
+zmon.conf
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/.config/zmon.conf
+END
+zapp.conf
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/.config/zapp.conf
+END
+zlog.conf
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/.config/zlog.conf
+END
+zcmd.conf
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svn/work/!svn/ver/85/ott/ott_vss/trunk/make/.config/zcmd.conf
+END

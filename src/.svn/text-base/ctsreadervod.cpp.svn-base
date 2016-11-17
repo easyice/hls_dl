@@ -1,0 +1,175 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "ctsreadervod.h"
+#include "zapp.h"
+
+CTsReaderVod::CTsReaderVod()
+{
+        m_iUserObjId = -1;
+}
+
+CTsReaderVod::~CTsReaderVod()
+{
+
+}
+
+bool CTsReaderVod::Open(OVT_STRU_CREATE_USER_OBJ_INFO stInfo)
+{
+        OVT_UNION_CONTROL_PARAMS unionControlParam;
+        unionControlParam.llTimeCode = 0;
+
+        m_iUserObjId = CreateUserObj(stInfo);
+
+        if (m_iUserObjId < 0)
+        {
+                ZLOG(ZLT_ERROR,"CreateUserObj 失败！",V(m_iUserObjId));
+                return false;
+        }
+        else
+        {
+                if (SetParams(m_iUserObjId, EN_USER_OBJ_CONTROL_PLAY, unionControlParam) != 0)
+                {
+                        ZLOG(ZLT_ERROR,"打开文件时， LibObj SetParams 失败！关闭用户FD");
+                        CloseNGODObj(m_iUserObjId);
+                        m_iUserObjId = -1;
+                        return false;
+                }
+        }
+
+        return true;
+}
+
+
+bool CTsReaderVod::Open(const std::string& filename,const char* mode)
+{
+        //do not use
+        return true;
+}
+
+bool CTsReaderVod::Close()
+{
+        CloseNGODObj(m_iUserObjId);
+        m_iUserObjId = -1;
+        
+        return true;
+}
+
+bool CTsReaderVod::Seek(long long llTimeCode)
+{
+        OVT_UNION_CONTROL_PARAMS unionCltParam;
+        unionCltParam.llTimeCode = llTimeCode;
+        if (SetParams(m_iUserObjId, EN_USER_OBJ_CONTROL_SEEK, unionCltParam) != 0)
+        {
+                ZLOG(ZLT_ERROR,"Seek 时，SetParams 失败！");
+                return false;
+        }
+        else
+        {
+                return true;
+        }
+}
+
+bool CTsReaderVod::Switch(float fScale)
+{
+        OVT_UNION_CONTROL_PARAMS unionCltParam;
+        unionCltParam.fScale = fScale;
+        if (SetParams(m_iUserObjId, EN_USER_OBJ_CONTROL_FAST, unionCltParam) != 0)
+        {
+                ZLOG(ZLT_ERROR,"SetParams 时，SetParams 失败！");
+                return false;
+        }
+        else
+        {
+                return true;
+        }
+}
+
+int CTsReaderVod::ReadGop(BYTE* pBuf, int nBufSize,long long &beginpcrvalue,
+                long long &endpcrvalue, long long& llTimeCodePcr)
+{
+        int iRet;
+        int iLen;
+        
+        int iSleepMs = 20;
+        int iReTryCount = 5*1000 / iSleepMs; // 重试超时：5秒
+        
+        OVT_VEC_LIB_STRU_CONTENT_PROVIDER_GOP_DATA vecstruGopData;
+        IT_OVT_VEC_LIB_STRU_CONTENT_PROVIDER_GOP_DATA it;
+        
+        if (m_iUserObjId < 0)
+        {
+                return -F_ERR_INVALID_FD;
+        }
+        
+        do
+        {
+                iRet = GetGopData(m_iUserObjId,vecstruGopData,beginpcrvalue,
+                                  endpcrvalue,llTimeCodePcr);
+                if (iRet > 0)
+                {
+                        break;
+                }
+                
+                usleep(iSleepMs*1000);
+                iReTryCount--;
+                
+                if (iRet == -1994 || iRet == -1995 || iRet == -4011 || iRet == -4012)
+                {
+                        iRet = -F_ERR_REACH_END;
+                        break;
+                }
+        }while (iRet <= 0 && iReTryCount >0);
+        
+        
+        if (iRet > 0)
+        {
+                iLen = 0;
+                for (it = vecstruGopData.begin(); it != vecstruGopData.end(); ++it)
+                {
+                        if (nBufSize - iLen < it->iBufSize)
+                        {
+                                ZLOG(ZLT_ERROR,"读取GOP时，缓冲不足，放弃部分数据",V(nBufSize),V(iLen),V(it->iBufSize));
+                                return iLen;
+                        }
+                        memcpy(pBuf + iLen, it->pBuf, it->iBufSize);
+                        iLen += it->iBufSize;
+                }
+
+                return iLen;
+        }
+        else
+        {
+                if (iRet != -F_ERR_REACH_END)
+                {
+                        ZLOG(ZLT_ERROR, "ReadGop failed", V(iRet));
+                }
+                return iRet;
+                
+        }
+        
+        return 0;
+}
+
+int CTsReaderVod::Read(BYTE* pBuf, int nBufSize)
+{
+        //do not use
+        return 0;
+}
+

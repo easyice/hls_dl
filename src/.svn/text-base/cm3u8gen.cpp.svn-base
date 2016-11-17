@@ -1,0 +1,156 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "cm3u8gen.h"
+#include <sstream>
+#include <stdio.h>
+#include "protocal.h"
+
+
+#define FNAMESIZE 10
+
+
+
+extern int g_nDurationPerSeg;
+
+
+CM3U8Gen::CM3U8Gen()
+{
+        m_bStreamFinish = false;
+        pthread_mutex_init (&m_mutex,NULL);
+}
+
+CM3U8Gen::~CM3U8Gen()
+{
+        pthread_mutex_destroy (&m_mutex);
+}
+
+void CM3U8Gen::Init(const std::string& sid, const std::string& st, const std::string& aid, const std::string& pid, int scale)
+{
+        m_strSt = st;
+        m_strAid = aid;
+        m_strPid = pid;
+        m_strSid = sid;
+        m_uSequence = 0;
+
+        m_iCurScale = scale;
+        
+        //如果不加假条目进去，只有一个条目，vlc无法播放
+        for (int i = -3; i < 0; i++)
+        {
+                UpdateFileName(i);
+        }
+}
+
+void CM3U8Gen::Switch(int scale)
+{
+        m_iCurScale = scale;
+        OnDisContinue();
+}
+
+void CM3U8Gen::OnSeek()
+{
+        OnDisContinue();
+}
+
+void CM3U8Gen::OnDisContinue()
+{
+        return;
+        
+        SCALE_FILENAME_T struInfo;
+        struInfo.iScale = 0;
+        struInfo.llFilename = 0;
+        
+        pthread_mutex_lock(&m_mutex);
+        m_lstScaleFilename.push_back(struInfo);
+
+        if (m_lstScaleFilename.size() > FNAMESIZE)
+        {
+                m_lstScaleFilename.pop_front();
+                m_uSequence++;
+        }
+        pthread_mutex_unlock(&m_mutex);
+}
+
+
+void CM3U8Gen::UpdateFileName(long long llFileName)
+{
+        SCALE_FILENAME_T struInfo;
+        struInfo.iScale = m_iCurScale;
+        struInfo.llFilename = llFileName;
+        
+        pthread_mutex_lock(&m_mutex);
+        m_lstScaleFilename.push_back(struInfo);
+
+        if (m_lstScaleFilename.size() > FNAMESIZE)
+        {
+                m_lstScaleFilename.pop_front();
+                m_uSequence++;
+        }
+        pthread_mutex_unlock(&m_mutex);
+}
+
+int CM3U8Gen::GenList(char* pBuf, int nBufLen)
+{
+        using namespace m3u8;
+        
+	/**
+	 * m3u8 file lines can be terminated with '\n' or '\r\n'
+	 */
+        int iPos;
+
+        list<SCALE_FILENAME_T>::iterator it;
+
+        iPos = sprintf(pBuf, "#EXTM3U\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:",g_nDurationPerSeg);
+        iPos += sprintf(pBuf + iPos, "%d\n", m_uSequence);
+        //iPos += sprintf(pBuf + iPos, "%s\n",EXT_X_ALLOW_CACHE_NO);
+
+        //TODO: add "EXT-X-ENDLIST" according to service type
+        
+        pthread_mutex_lock(&m_mutex);
+        for (it = m_lstScaleFilename.begin(); it != m_lstScaleFilename.end(); ++it)
+        {
+                if (it->iScale == 0 && it->llFilename == 0)//discontinue
+                {
+                        iPos += snprintf(pBuf+iPos,nBufLen-iPos,"%s\n",EXT_X_DISCONTINUITY);
+                }
+                else
+                {
+                        iPos += snprintf(pBuf+iPos,nBufLen-iPos, 
+                                   "#EXTINF:%d,\nGetTs?sessionid=%s&st=%s&aid=%s&pid=%s&scale=%d&filename=%lld&fm=1.ts\n",
+                                   g_nDurationPerSeg,m_strSid.c_str(), m_strSt.c_str(), m_strAid.c_str(), 
+                                   m_strPid.c_str(), it->iScale,it->llFilename);
+                }
+        }
+        
+        if (m_bStreamFinish)
+        {
+                iPos += snprintf(pBuf+iPos,nBufLen-iPos,"%s\n",EXT_X_ENDLIST);
+        }
+
+        pthread_mutex_unlock(&m_mutex);
+
+        return iPos;
+}
+
+void CM3U8Gen::OnFinish()
+{
+        m_bStreamFinish = true;
+}
+

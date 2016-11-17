@@ -1,0 +1,3 @@
+PROJECT(hls_dl)
+
+ADD_SUBDIRECTORY(src bin)

@@ -1,0 +1,85 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) 2012  elva <email>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+
+#include "cwritebuffer.h"
+
+CWriteBuffer::CWriteBuffer()
+	
+{
+	m_pBuffer = NULL;
+	m_nBufferLen = 0;
+	m_nBufferSize = 0;
+	
+}
+
+CWriteBuffer::~CWriteBuffer()
+{
+	delete [] m_pBuffer;
+}
+
+void CWriteBuffer::Init(int size)
+{
+	m_pBuffer = new BYTE[size];
+	m_nBufferSize = size;
+}
+
+
+
+bool CWriteBuffer::AddData(BYTE* pData, int nLen)
+{
+	if (nLen + m_nBufferLen > m_nBufferSize)
+	{
+		//ZLOG(ZLT_ERROR,"写缓冲已满，数据放弃添加!",V(nLen),V(m_nBufferLen),V(m_nBufferSize));
+		cout << "buff err" << endl;
+		return false;
+	}
+	
+	memcpy(m_pBuffer + m_nBufferLen,pData,nLen);
+	m_nBufferLen += nLen;
+	
+	return true;
+}
+
+bool CWriteBuffer::RemovePart(int nLen)
+{
+	if (nLen >= m_nBufferLen)
+	{
+		ZLOG(ZLT_ERROR,"参数错误",V(nLen),V(m_nBufferLen));
+		return false;
+	}
+	
+	memmove(m_pBuffer,m_pBuffer+nLen,m_nBufferLen-nLen);
+	m_nBufferLen = m_nBufferLen-nLen;
+	return true;
+}
+
+BYTE* CWriteBuffer::GetBufferPtr()
+{
+	return m_pBuffer;
+}
+
+int CWriteBuffer::GetDataLen()
+{
+	return m_nBufferLen;
+}
+
+void CWriteBuffer::ReSetBuffer()
+{
+	m_nBufferLen = 0;
+}
