@@ -264,7 +264,7 @@ int CUdpObj::CreateClientObj()
 	}
 	
 	
-	if( (bind(m_stAttr.socket,(struct sockaddr *)&m_stAttr.sock_addr_in,m_stAttr.addr_len)) == -1)
+    if( (bind(m_stAttr.socket,(struct sockaddr *)&m_stAttr.sock_addr_in,m_stAttr.addr_len)) == -1)
 	{
 		cout << "Udp Bind is error.recvip=" << m_stParam.ipAddr << ",recvport=" << m_stParam.port << endl;
 		close(m_stAttr.socket);

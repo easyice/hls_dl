@@ -26,6 +26,7 @@ using namespace std;
 void version()
 {
         cout << "version 1.7" << endl;
+        cout << "develop by elva, www.easyice.cn" << endl;
         cout << "date:2015/1/6" << endl;
         _exit(0);
 }
@@ -34,8 +35,8 @@ void usage(char *name)
 {
         cout << "USAGE: "<< name <<" [OPTION]" << endl;
         cout << " -l set http link" << endl;
-        cout << " -p set save path" << endl;
-        cout << " -f set save filename" << endl;
+        cout << " -p set save path (save raw ts to path)" << endl;
+        cout << " -f set save filename (save ts and merge to single file)" << endl;
         cout << " -o set output name" << endl;
         cout << " -u set udp dst: ip:port" << endl;
         cout << " -r realtime mode" << endl;
@@ -76,6 +77,7 @@ void scan_args(int argc,char **argv,INIT_PARAM_T& init_param)
                                 break;
                         case 'f':
                                 init_param.savefile = optarg;
+                                init_param.single_file_mode = true;
                                 break;
                         case 'o':
                                 init_param.outname = optarg;

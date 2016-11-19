@@ -32,6 +32,7 @@ public:
         void OnRecvTs(const string& url,const BYTE* pData,int nLen);
         bool IsExist(const string& url);
         bool Init();
+        void Destroy();
 public:
         int m_segment_count;
         string m_m3u8name;

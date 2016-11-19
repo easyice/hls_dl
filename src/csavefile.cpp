@@ -114,17 +114,18 @@ bool CSaveFile::IsExist(const string& url)
         return false;
 }
 
+void CSaveFile::Destroy()
+{
+       if (m_fpOut != NULL)
+        {
+               fclose(m_fpOut);
+               m_fpOut = NULL;
+        } 
+}
+
 void CSaveFile::OnRecvTs(const string& url,const BYTE* pData, int nLen)
 {
-        if (m_bFirstSave)
-        {
-                if (m_stParam.realtime_mode)
-                {
-                        OnCheckTsExpire();
-                }
-                m_bFirstSave = false;
-        }
-        if (!m_stParam.savefile.empty())
+        if (m_stParam.single_file_mode)
         {
                 if (m_fpOut == NULL)
                 {
@@ -134,6 +135,17 @@ void CSaveFile::OnRecvTs(const string& url,const BYTE* pData, int nLen)
                 fwrite(pData,1,nLen,m_fpOut);
                 return;
         }
+        
+        
+        if (m_bFirstSave)
+        {
+                if (m_stParam.realtime_mode)
+                {
+                        OnCheckTsExpire();
+                }
+                m_bFirstSave = false;
+        }
+        
         string tsname = url.substr(url.rfind("/")+1);
         tsname = removeparam(tsname);
         if (tsname.empty())
@@ -186,10 +198,9 @@ void CSaveFile::OnRecvTs(const string& url,const BYTE* pData, int nLen)
 
 void CSaveFile::OnRecvM3u8(const string& m3u8)
 {
-        if (!m_stParam.savefile.empty())
+        if (m_stParam.single_file_mode)
         {
-                cout << "暂时不支持保存单个文件" << endl;
-                return;
+                return ;
         }
         
         FILE* fp = fopen(m_m3u8pathname.c_str(),"w");
@@ -204,6 +215,11 @@ void CSaveFile::OnRecvM3u8(const string& m3u8)
 
 bool CSaveFile::Init()
 {
+        if (m_stParam.single_file_mode)
+        {
+                return true;
+        }
+
         if (m_stParam.outname.empty())
         {
                 m_path = m_stParam.savepath + m_m3u8name + "/";

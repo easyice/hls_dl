@@ -47,6 +47,7 @@ typedef struct _INIT_PARAM_T
         {
                 realtime_mode = false;
                 continue_mode = false;
+                single_file_mode = false;
                 udp_port = 1234;
         }
         string url;
@@ -58,6 +59,7 @@ typedef struct _INIT_PARAM_T
         int udp_port;
         bool realtime_mode;
         bool continue_mode;
+        bool single_file_mode;
 }INIT_PARAM_T;
 
 

@@ -131,6 +131,7 @@ void CDownloader::Run(const INIT_PARAM_T& init_param)
         {
                 pthread_join(m_thread,NULL);
         }
+        m_pSaveFile->Destroy();
 }
 
 bool CDownloader::SelectStream(stream_sys_t& sys, hls_stream_t& hls,const string& m3u8_content)
